@@ -4,34 +4,63 @@ import 'dart:math';
 import 'package:flutter/cupertino.dart';
 
 void main() {
-  // Example usage of the functions
-  List<List<int>> board = List.generate(9, (_) => List.filled(9, 0));
-  int currentPlayer = 1;
-  Map<String, dynamic> position = {'board': board, 'winner': null, 'currentPlayer': currentPlayer};
-  Map<String, dynamic> nextPosition = getNextPosition(position, 0, 0);
-  print(nextPosition);
-  double score = miniMax(position, 0, 5, -double.infinity, double.infinity, true);
-  print(score);
-}
-
-int realEvaluateSquare(int pos) {
-  int row = (pos / 9).floor();
-  int col = pos % 9;
-  int baseRow = (row / 3).floor() * 3;
-  int baseCol = (col / 3).floor() * 3;
-  int score = 0;
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      int val = board[baseRow + i][baseCol + j];
-      if (val == currentPlayer) {
-        score += 3;
-      } else if (val != null) {
-        score -= 2;
+  Map<String, dynamic> position = {
+    'board': List.filled(9, List.filled(9, 0)),
+    'nextBoard': -1,
+    'winner': -1,
+    'turn': 1
+  };
+  while (true) {
+    print(position);
+    print('Next board: ${position['nextBoard']}');
+    print('Enter your move:');
+    String input = stdin.readLineSync()!;
+    int move = int.parse(input);
+    if (!makeMove(position, move)) {
+      print('Invalid move!');
+      continue;
+    }
+    if (position['winner'] != -1) {
+      print('Game over!');
+      break;
+    }
+    if (position['turn'] == 1) {
+      move = findBestMove(position, 3);
+      makeMove(position, move);
+      print('Computer plays $move');
+      if (position['winner'] != -1) {
+        print('Game over!');
+        break;
       }
     }
   }
-  return score;
 }
+// Function to make a move on the board
+bool makeMove(Map<String, dynamic> position, int move) {
+  if (position['winner'] != -1 || position['board'][move ~/ 9][move % 9] != 0 ||
+      (position['nextBoard'] != -1 && position['nextBoard'] != move % 9)) {
+    return false;
+  }
+  position['board'][move ~/ 9][move % 9] = position['turn'];
+  int win = checkWinCondition(position['board'][move % 9]);
+  if (win != -1) {
+    position['boardToPlayOn'][move % 9] = win;
+    if (checkWinCondition(position['boardToPlayOn']) != -1) {
+      position['winner'] = checkWinCondition(position['boardToPlayOn']);
+      return true;
+    }
+    position['nextBoard'] = -1;
+  } else {
+    if (checkWinCondition(position['board'][move % 9]) != -1) {
+      position['nextBoard'] = move % 9;
+    } else {
+      position['nextBoard'] = -1;
+    }
+  }
+  position['turn'] = 3 - position['turn'];
+  return true;
+}
+
 
 int evaluatePos(int pos, List<List<int>> square) {
   int score = 0;
