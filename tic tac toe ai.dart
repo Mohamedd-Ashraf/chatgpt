@@ -1,5 +1,63 @@
 var bestMove = -1;
 var bestScore = [-Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity];
+int realEvaluateSquare(List<int> pos) {
+double evaluation = 0;
+List<double> points = [0.2, 0.17, 0.2, 0.17, 0.22, 0.17, 0.2, 0.17, 0.2];
+
+for(int bw in pos.asMap().keys){
+evaluation -= pos[bw] * points[bw];
+}
+
+int a = 2;
+if(pos[0] + pos[1] + pos[2] == a || pos[3] + pos[4] + pos[5] == a || pos[6] + pos[7] + pos[8] == a) {
+evaluation -= 6;
+}
+if(pos[0] + pos[3] + pos[6] == a || pos[1] + pos[4] + pos[7] == a || pos[2] + pos[5] + pos[8] == a) {
+evaluation -= 6;
+}
+if(pos[0] + pos[4] + pos[8] == a || pos[2] + pos[4] + pos[6] == a) {
+evaluation -= 7;
+}
+
+a = -1;
+if((pos[0] + pos[1] == 2 * a && pos[2] == -a) || (pos[1] + pos[2] == 2 * a && pos[0] == -a) || (pos[0] + pos[2] == 2 * a && pos[1] == -a)
+|| (pos[3] + pos[4] == 2 * a && pos[5] == -a) || (pos[3] + pos[5] == 2 * a && pos[4] == -a) || (pos[5] + pos[4] == 2 * a && pos[3] == -a)
+|| (pos[6] + pos[7] == 2 * a && pos[8] == -a) || (pos[6] + pos[8] == 2 * a && pos[7] == -a) || (pos[7] + pos[8] == 2 * a && pos[6] == -a)
+|| (pos[0] + pos[3] == 2 * a && pos[6] == -a) || (pos[0] + pos[6] == 2 * a && pos[3] == -a) || (pos[3] + pos[6] == 2 * a && pos[0] == -a)
+|| (pos[1] + pos[4] == 2 * a && pos[7] == -a) || (pos[1] + pos[7] == 2 * a && pos[4] == -a) || (pos[4] + pos[7] == 2 * a && pos[1] == -a)
+|| (pos[2] + pos[5] == 2 * a && pos[8] == -a) || (pos[2] + pos[8] == 2 * a && pos[5] == -a) || (pos[5] + pos[8] == 2 * a && pos[2] == -a)
+|| (pos[0] + pos[4] == 2 * a && pos[8] == -a) ||        (pos[0] + pos[8] == 2 * a && pos[4] == -a) || (pos[4] + pos[8] == 2 * a && pos[0] == -a)
+        || (pos[2] + pos[4] == 2 * a && pos[6] == -a) || (pos[2] + pos[6] == 2 * a && pos[4] == -a) || (pos[4] + pos[6] == 2 * a && pos[2] == -a)) {
+      evaluation -= 9;
+    }
+
+    a = -2;
+    if (pos[0] + pos[1] + pos[2] == a || pos[3] + pos[4] + pos[5] == a || pos[6] + pos[7] + pos[8] == a) {
+      evaluation += 6;
+    }
+    if (pos[0] + pos[3] + pos[6] == a || pos[1] + pos[4] + pos[7] == a || pos[2] + pos[5] + pos[8] == a) {
+      evaluation += 6;
+    }
+    if (pos[0] + pos[4] + pos[8] == a || pos[2] + pos[4] + pos[6] == a) {
+      evaluation += 7;
+    }
+
+    a = 1;
+    if ((pos[0] + pos[1] == 2 * a && pos[2] == -a) || (pos[1] + pos[2] == 2 * a && pos[0] == -a) || (pos[0] + pos[2] == 2 * a && pos[1] == -a)
+        || (pos[3] + pos[4] == 2 * a && pos[5] == -a) || (pos[3] + pos[5] == 2 * a && pos[4] == -a) || (pos[5] + pos[4] == 2 * a && pos[3] == -a)
+        || (pos[6] + pos[7] == 2 * a && pos[8] == -a) || (pos[6] + pos[8] == 2 * a && pos[7] == -a) || (pos[7] + pos[8] == 2 * a && pos[6] == -a)
+        || (pos[0] + pos[3] == 2 * a && pos[6] == -a) || (pos[0] + pos[6] == 2 * a && pos[3] == -a) || (pos[3] + pos[6] == 2 * a && pos[0] == -a)
+        || (pos[1] + pos[4] == 2 * a && pos[7] == -a) || (pos[1] + pos[7] == 2 * a && pos[4] == -a) || (pos[4] + pos[7] == 2 * a && pos[1] == -a)
+        || (pos[2] + pos[5] == 2 * a && pos[8] == -a) || (pos[2] + pos[8] == 2 * a && pos[5] == -a) || (pos[5] + pos[8] == 2 * a && pos[2] == -a)
+        || (pos[0] + pos[4] == 2 * a && pos[8] == -a) || (pos[0] + pos[8] == 2 * a && pos[4] == -a) || (pos[4] + pos[8] == 2 * a && pos[0] == -a)
+        || (pos[2] + pos[4] == 2 * a && pos[6] == -a) || (pos[2] + pos[6] == 2 * a && pos[4] == -a) || (pos[4] + pos[6] == 2 * a && pos[2] == -a)) {
+      evaluation -= 9;
+    }
+
+    evaluation -= checkWinCondition(pos) * 12;
+
+    return evaluation as int;
+}
 
 function game(){
     //BG FILL
