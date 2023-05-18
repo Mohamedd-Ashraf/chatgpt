@@ -1,942 +1,313 @@
-// // ignore_for_file: library_private_types_in_public_api, unnecessary_import, duplicate_import, unnecessary_const, prefer_const_constructors, depend_on_referenced_packages, camel_case_types, unused_import
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
-// // import 'package:tic_tac_toe/ultimate_lobby.dart';
+var bestMove = -1;
+var bestScore = [-Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity];
 
-// import 'HowToPlay.dart';
-// import 'lobby.dart';
-// import 'lobby_provider.dart';
-// import 'modes_page.dart';
-// import 'online_multiplayer.dart';
-// import 'name_provider.dart';
-// import 'online_or_offline.dart';
-// import 'single_modes_page.dart';
+function game(){
+    //BG FILL
+    ctx.fillStyle = COLORS.white;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-// void main() async {
-//   WidgetsFlutterBinding.ensureInitialized();
-//   await Firebase.initializeApp();
-//   runApp(
-//     ChangeNotifierProvider(
-//       create: (context) => LobbyViewModel(),
-//       child: MyApp(),
-//     ),
-//   );
-// }
-// class MyApp extends StatelessWidget {
-//   // Using "static" so that we can easily access it later
-//   static final ValueNotifier<ThemeMode> themeNotifier =
-//       ValueNotifier(ThemeMode.light);
+    ctx.lineWidth = 3;
+    var squareSize = WIDTH/4;
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return ChangeNotifierProvider(
-//         create: (context) {
-//           return PlayerName();
-//         },
-//         child: ValueListenableBuilder<ThemeMode>(
-//             valueListenable: themeNotifier,
-//             builder: (_, ThemeMode currentMode, __) {
-//               return MaterialApp(
-//                 // Remove the debug banner
-//                 debugShowCheckedModeBanner: false,
-//                 theme: ThemeData(primarySwatch: Colors.amber),
-//                 darkTheme: ThemeData.dark(),
-//                 themeMode: currentMode,
-//                 home: HomeScreen(),
-//               );
-//               //     return HomeScreen();
-//             }));
-// //   return  MaterialApp(
-// //       home: ChangeNotifierProvider(
-// //         create: (context) => LobbyViewModel(),
-// //         child: HomeScreen(),
-// //       ),
-// //     );
-//   }
-// }
+    //AI HANDLER
 
-// // Home Screen
-// class HomeScreen extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//         appBar: AppBar(
-//           toolbarHeight:45,
-//           centerTitle: true,
-//           title: Text('Tic Tac Toeee'),
-//           actions: [
-//             IconButton(
-//                 icon: Icon(MyApp.themeNotifier.value == ThemeMode.light
-//                     ? Icons.dark_mode
-//                     : Icons.light_mode),
-//                 onPressed: () {
-//                   MyApp.themeNotifier.value =
-//                       MyApp.themeNotifier.value == ThemeMode.light
-//                           ? ThemeMode.dark
-//                           : ThemeMode.light;
-//                 })
-//           ],
-//         ),
-//         body: Container(
-//           // Background ( Decoration ) Image
-//           height: 1000,
-//           width: 1000,
-//           decoration: const BoxDecoration(
+    if(currentTurn === -1 && gameRunning && AIACTIVE){
 
-//               // color: Color.fromARGB(255, 0, 0, 0),
-//               image: DecorationImage(
-//             //   scale: 1.17 ,
-//             alignment: Alignment.topCenter,
-//             image: AssetImage("assets/game-1.gif"),
-//             fit: BoxFit.contain,
-//             //  opacity:10.0,
-//           )),
+        console.log("Start AI");
+        //document.getElementById("loader").removeAttribute('hidden');
 
-//           child: SingleChildScrollView(
-//             child:
-//               Column(
-//                 // settings icon button
-//                 children: [
-//                   SizedBox(height: 30,),
+        bestMove = -1;
+        bestScore = [-Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity];
 
-//                   //sized box for top of screen
-//                   // "Press to start"  TEXT
-//                   const SizedBox(height: 280),
-//                   const Text(
-//                     'Press to Start',
-//                     style: TextStyle(
-//                       fontSize: 40,
-//                       fontWeight: FontWeight.bold,
-//                       fontStyle: FontStyle.italic,
-//                       color: Color.fromARGB(255, 194, 100, 100),
-//                       letterSpacing: 4.0,
-//                     ),
-//                   ),
-//                   // Play icon button
-//                   // sized box for how to play button
-//                   const SizedBox(height: 20),
+        RUNS = 0; //Just a variable where I store how many times minimax has run
 
-//                   /// how to play button
-//                   ///
-//                   IconButton(
-//                     iconSize: 60,
-//                     onPressed: () => Navigator.of(context).push(
-//                       MaterialPageRoute(
-//                         builder: (_) => OnlineOrOflline(),
-//                       ),
-//                     ),
-//                     icon: const Icon(Icons.play_arrow),
-//                     color: Color.fromARGB(255, 45, 197, 172),
-//                   ),
-//                   const SizedBox(height: 70),
-//                   Container(
-//                       height: 30,
-//                       width: 150,
-//                       child: ElevatedButton(
-//                         // ignore: prefer_const_constructors
-//                         style: ElevatedButton.styleFrom(
-//                           shape: RoundedRectangleBorder(
-//                               borderRadius: BorderRadius.circular(20)),
-//                         ),
-//                         onPressed: () => Navigator.of(context).push(
-//                           MaterialPageRoute(builder: (_) => const HowToPlay()
-//                               // HowtoPlay(),
-
-//                               ),
-//                         ),
-//                         child: const Text(
-//                           'How to Play',
-//                           style: TextStyle(
-//                             fontSize: 22,
-//                           ),
-//                         ),
-//                       )),
-//                 ],
-//               ),
-            
-//           ),
-//         ));
-//   }
-// }
-import 'dart:io';
-import 'dart:math';
-
-import 'package:flutter/cupertino.dart';
-
-void main() {
-  Map<String, dynamic> position = {
-    'board': List.filled(9, List.filled(9, 0)),
-    'nextBoard': -1,
-    'winner': -1,
-    'turn': 1
-  };
-  while (true) {
-    print(position);
-    print('Next board: ${position['nextBoard']}');
-    print('Enter your move:');
-    String input = stdin.readLineSync()!;
-    int move = int.parse(input);
-    if (!makeMove(position, move)) {
-      print('Invalid move!');
-      continue;
-    }
-    if (position['winner'] != -1) {
-      print('Game over!');
-      break;
-    }
-    if (position['turn'] == 1) {
-      move = findBestMove(position, 3);
-      makeMove(position, move);
-      print('Computer plays $move');
-      if (position['winner'] != -1) {
-        print('Game over!');
-        break;
-      }
-    }
-  }
-}
-// Function to make a move on the board
-bool makeMove(Map<String, dynamic> position, int move) {
-  if (position['winner'] != -1 || position['board'][move ~/ 9][move % 9] != 0 ||
-      (position['nextBoard'] != -1 && position['nextBoard'] != move % 9)) {
-    return false;
-  }
-  position['board'][move ~/ 9][move % 9] = position['turn'];
-  int win = checkWinCondition(position['board'][move % 9]);
-  if (win != -1) {
-    position['boardToPlayOn'][move % 9] = win;
-    if (checkWinCondition(position['boardToPlayOn']) != -1) {
-      position['winner'] = checkWinCondition(position['boardToPlayOn']);
-      return true;
-    }
-    position['nextBoard'] = -1;
-  } else {
-    if (checkWinCondition(position['board'][move % 9]) != -1) {
-      position['nextBoard'] = move % 9;
-    } else {
-      position['nextBoard'] = -1;
-    }
-  }
-  position['turn'] = 3 - position['turn'];
-  return true;
-}
-
-
-int evaluatePos(int pos, List<List<int>> square) {
-  int score = 0;
-  int row = (pos / 9).floor();
-  int col = pos % 9;
-  int baseRow = (row / 3).floor() * 3;
-  int baseCol = (col / 3).floor() * 3;
-  for (int i = 0; i < 3; i++) {
-    if (square[baseRow + i][baseCol] == square[baseRow + i][baseCol + 1] && square[baseRow + i][baseCol + 1] == square[baseRow + i][baseCol + 2]) {
-      score += square[baseRow + i][baseCol] == currentPlayer ? 3 : -2;
-    }
-    if (square[baseRow][baseCol + i] == square[baseRow + 1][baseCol + i] && square[baseRow + 1][baseCol + i] == square[baseRow + 2][baseCol + i]) {
-      score += square[baseRow][baseCol + i] == currentPlayer ? 3 : -2;
-    }
-  }
-  if (square[baseRow][baseCol] == square[baseRow + 1][baseCol + 1] && square[baseRow + 1][baseCol + 1] == square[baseRow + 2][baseCol + 2]) {
-    score += square[baseRow][baseCol] == currentPlayer ? 3 : -2;
-  }
-  if (square[baseRow][baseCol + 2] == square[baseRow + 1][baseCol + 1] && square[baseRow + 1][baseCol + 1] == square[baseRow + 2][baseCol]) {
-    score += square[baseRow][baseCol + 2] == currentPlayer ? 3 : -2;
-  }
-  return score;
-}
-
-double miniMax(Map<String, dynamic> position, int boardToPlayOn, int depth, double alpha, double beta, bool maximizingPlayer) {
-  if (depth == 0 || position['winner'] != null
-) {
-int score = evaluateGame(position, position['board']);
-return score.toDouble();
-}
-
-List<int> availableMoves = getAvailableMoves(position, boardToPlayOn);
-if (availableMoves.isEmpty) {
-return 0;
-}
-
-if (maximizingPlayer) {
-double maxScore = -double.infinity;
-for (int move in availableMoves) {
-Map<String, dynamic> nextPosition = getNextPosition(position, boardToPlayOn, move);
-double score = miniMax(nextPosition, move, depth - 1, alpha, beta, false);
-maxScore = max(maxScore, score);
-alpha = max(alpha, score);
-if (beta <= alpha) {
-break;
-}
-}
-return maxScore;
-} else {
-double minScore = double.infinity;
-for (int move in availableMoves) {
-Map<String, dynamic> nextPosition = getNextPosition(position, boardToPlayOn, move);
-double score = miniMax(nextPosition, move, depth - 1, alpha, beta, true);
-minScore = min(minScore, score);
-beta = min(beta, score);
-if (beta <= alpha) {
-break;
-}
-}
-return minScore;
-}
-}
-
-int evaluateGame(Map<String, dynamic> position, List<List<int>> currentBoard) {
-int score = 0;
-for (int i = 0; i < 9; i++) {
-int squareScore = evaluatePos(i, currentBoard);
-score += squareScore;
-}
-return score;
-}
-
-List<int> getAvailableMoves(Map<String, dynamic> position, int boardToPlayOn) {
-List<int> availableMoves = [];
-for (int i = 0; i < 9; i++) {
-if (position['winner'] != null) {
-break;
-}
-if (i != boardToPlayOn && position['board'][boardToPlayOn][i] == null) {
-availableMoves.add(i);
-}
-}
-return availableMoves;
-}
-
-Map<String, dynamic> getNextPosition(Map<String, dynamic> position, int boardToPlayOn, int move) {
-List<List<int>> newBoard = position['board'].map((row) => List.from(row)).toList();
-int currentPlayer = position['currentPlayer'];
-newBoard[boardToPlayOn][move] = currentPlayer;
-Map<String, dynamic> nextPosition = {'board': newBoard, 'winner': null, 'currentPlayer': currentPlayer};
-int row = (move / 9).floor();
-int col = move % 9;
-int baseRow = (row / 3).floor() * 3;
-int baseCol = (col / 3).floor() * 3;
-if (checkWinCondition(newBoard[boardToPlayOn].sublist(baseCol, baseCol + 3))) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition(newBoard[boardToPlayOn].sublist(baseCol + 3, baseCol + 6))) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition(newBoard[boardToPlayOn].sublist(baseCol + 6, baseCol + 9))) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition([newBoard[boardToPlayOn][baseCol], newBoard[boardToPlayOn][baseCol + 1], newBoard[boardToPlayOn][baseCol + 2]])) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition([newBoard[boardToPlayOn][baseCol + 3], newBoard[boardToPlayOn][baseCol + 4], newBoard[boardToPlayOn][baseCol + 5]])) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition([newBoard[boardToPlayOn][baseCol + 6], newBoard[boardToPlayOn][baseCol + 7], newBoard[boardToPlayOn][baseCol + 8]])) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition([newBoard[boardToPlayOn][baseRow + 0], newBoard[boardToPlayOn][baseRow + 1], newBoard[boardToPlayOn][baseRow + 2]])) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition([newBoard[boardToPlayOn][baseRow + 3], newBoard[boardToPlayOn][baseRow + 4], newBoard[boardToPlayOn][baseRow + 5]])) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition([newBoard[boardToPlayOn][baseRow + 6], newBoard[boardToPlayOn][baseRow + 7], newBoard[boardToPlayOn][baseRow + 8]])) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition([newBoard[boardToPlayOn][0], newBoard[boardToPlayOn][4], newBoard[boardToPlayOn][8]])) {
-nextPosition['winner'] = currentPlayer;
-} else if (checkWinCondition([newBoard[boardToPlayOn][2], newBoard[boardToPlayOn][4], newBoard[boardToPlayOn][6]])) {
-nextPosition['winner'] = currentPlayer;
-} else {
-bool isTie = true;
-for (int i = 0; i < 9; i++) {
-for (int j = 0; j < 9; j++) {
-if (newBoard[i][j] == null) {
-isTie = false;
-break;
-}
-}
-}
-if (isTie) {
-nextPosition['winner'] = -1;
-} else {
-nextPosition['currentPlayer'] = 3 - currentPlayer;
-}
-}
-return nextPosition;
-}
-
-bool checkWinCondition(List<int> map) {
-if (map[0] == map[1] && map[1] == map[2] && map[0] != null) {
-return true;
-}
-return false;
-}
-
-int getWinner(Map<String, dynamic> position) {
-int winner = position['winner'];
-if (winner == null) {
-winner = realEvaluate(position, position['board']);
-}
-return winner;
-}double realEvaluate(Map<String, dynamic> position, List<List<int>> board) {
-double score = 0;
-for (int i = 0; i < 9; i++) {
-for (int j = 0; j < 9; j++) {
-if (board[i][j] != null) {
-int square = (i ~/ 3) * 3 + (j ~/ 3);
-score += evaluatePos(position, square, i % 3, j % 3) * (board[i][j] == 1 ? 1 : -1);
-}
-}
-}
-return score;
-}
-
-double evaluatePos(Map<String, dynamic> position, int square, int row, int col) {
-double score = 0;
-for (int i = 0; i < 3; i++) {
-for (int j = 0; j < 3; j++) {
-int val = position['board'][square * 3 + i][square * 3 + j];
-if (val == 1) {
-score += evaluateSquare(position, square, i, j);
-} else if (val == 2) {
-score -= evaluateSquare(position, square, i, j);
-}
-}
-}
-return score;
-}
-
-double evaluateSquare(Map<String, dynamic> position, int square, int row, int col) {
-double score = 0;
-int currentPlayer = position['currentPlayer'];
-int opponentPlayer = 3 - currentPlayer;
-if (position['board'][square * 3 + row][square * 3 + col] != null) {
-return score;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 0], position['board'][square * 3 + 0][square * 3 + 1], position['board'][square * 3 + 0][square * 3 + 2]])) {
-return currentPlayer == 1 ? 100 : -100;
-}
-if (checkWinCondition([position['board'][square * 3 + 1][square * 3 + 0], position['board'][square * 3 + 1][square * 3 + 1], position['board'][square * 3 + 1][square * 3 + 2]])) {
-return currentPlayer == 1 ? 100 : -100;
-}
-if (checkWinCondition([position['board'][square * 3 + 2][square * 3 + 0], position['board'][square * 3 + 2][square * 3 + 1], position['board'][square * 3 + 2][square * 3 + 2]])) {
-return currentPlayer == 1 ? 100 : -100;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 0], position['board'][square * 3 + 1][square * 3 + 0], position['board'][square * 3 + 2][square * 3 + 0]])) {
-return currentPlayer == 1 ? 100 : -100;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 1], position['board'][square * 3 + 1][square * 3 + 1], position['board'][square * 3 + 2][square * 3 + 1]])) {
-return currentPlayer == 1 ?
-100 : -100;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 2], position['board'][square * 3 + 1][square * 3 + 2], position['board'][square * 3 + 2][square * 3 + 2]])) {
-return currentPlayer == 1 ? 100 : -100;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 0], position['board'][square * 3 + 1][square * 3 + 1], position['board'][square * 3 + 2][square * 3 + 2]])) {
-return currentPlayer == 1 ? 100 : -100;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 2], position['board'][square * 3 + 1][square * 3 + 1], position['board'][square * 3 + 2][square * 3 + 0]])) {
-return currentPlayer == 1 ? 100 : -100;
-}
-score += realEvaluateSquare(position, square) * (currentPlayer == 1 ? 1 : -1);
-score += realEvaluateSquare(position, square, opponentPlayer) * (currentPlayer == 1 ? -1 : 1);
-return score;
-}
-
-double realEvaluateSquare(Map<String, dynamic> position, int square, [int player]) {
-player ??= position['currentPlayer'];
-int opponentPlayer = 3 - player;
-double score = 0;
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 0], position['board'][square * 3 + 0][square * 3 + 1], position['board'][square * 3 + 0][square * 3 + 2]], player)) {
-score += 10;
-}
-if (checkWinCondition([position['board'][square * 3 + 1][square * 3 + 0], position['board'][square * 3 + 1][square * 3 + 1], position['board'][square * 3 + 1][square * 3 + 2]], player)) {
-score += 10;
-}
-if (checkWinCondition([position['board'][square * 3 + 2][square * 3 + 0], position['board'][square * 3 + 2][square * 3 + 1], position['board'][square * 3 + 2][square * 3 + 2]], player)) {
-score += 10;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 0], position['board'][square * 3 + 1][square * 3 + 0], position['board'][square * 3 + 2][square * 3 + 0]], player)) {
-score += 10;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 1], position['board'][square * 3 + 1][square * 3 + 1], position['board'][square * 3 + 2][square * 3 + 1]], player)) {
-score += 10;
-}
-if (checkWinCondition([position['board'][square * 3 +0][square * 3 + 2], position['board'][square * 3 + 1][square * 3 + 2], position['board'][square * 3 + 2][square * 3 + 2]], player)) {
-score += 10;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 0], position['board'][square * 3 + 1][square * 3 + 1], position['board'][square * 3 + 2][square * 3 + 2]], player)) {
-score += 10;
-}
-if (checkWinCondition([position['board'][square * 3 + 0][square * 3 + 2], position['board'][square * 3 + 1][square * 3 + 1], position['board'][square * 3 + 2][square * 3 + 0]], player)) {
-score += 10;
-}
-score += countPossibleWins(position, square, player) * 5;
-score += countPossibleWins(position, square, opponentPlayer) * 3;
-score += countPossibleLines(position, square, player) * 2;
-score += countPossibleLines(position, square, opponentPlayer) * 1;
-score += countPossibleForks(position, square, player) * 2;
-score += countPossibleForks(position, square, opponentPlayer) * 1;
-return score;
-}
-
-int countPossibleWins(Map<String, dynamic> position, int square, int player) {
-int count = 0;
-if (position['board'][square * 3 + 0][square * 3 + 0] == player && position['board'][square * 3 + 0][square * 3 + 1] == player && position['board'][square * 3 + 0][square * 3 + 2] == 0) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 0] == player && position['board'][square * 3 + 0][square * 3 + 1] == 0 && position['board'][square * 3 + 0][square * 3 + 2] == player) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 0] == 0 && position['board'][square * 3 + 0][square * 3 + 1] == player && position['board'][square * 3 + 0][square * 3 + 2] == player) {
-count++;
-}
-if (position['board'][square * 3 + 1][square * 3 + 0] == player && position['board'][square * 3 + 1][square * 3 + 1] == player && position['board'][square * 3 + 1][square * 3 + 2] == 0) {
-count++;
-}
-if (position['board'][square * 3 + 1][square * 3 + 0] == player && position['board'][square * 3 + 1][square * 3 + 1] == 0 && position['board'][square * 3 + 1][square * 3 + 2] == player) {
-count++;
-}
-if (position['board'][square * 3 + 1][square * 3 + 0] ==0 && position['board'][square * 3 + 1][square * 3 + 1] == player && position['board'][square * 3 + 1][square * 3 + 2] == player) {
-count++;
-}
-if (position['board'][square * 3 + 2][square * 3 + 0] == player && position['board'][square * 3 + 2][square * 3 + 1] == player && position['board'][square * 3 + 2][square * 3 + 2] == 0) {
-count++;
-}
-if (position['board'][square * 3 + 2][square * 3 + 0] == player && position['board'][square * 3 + 2][square * 3 + 1] == 0 && position['board'][square * 3 + 2][square * 3 + 2] == player) {
-count++;
-}
-if (position['board'][square * 3 + 2][square * 3 + 0] == 0 && position['board'][square * 3 + 2][square * 3 + 1] == player && position['board'][square * 3 + 2][square * 3 + 2] == player) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 0] == player && position['board'][square * 3 + 1][square * 3 + 0] == player && position['board'][square * 3 + 2][square * 3 + 0] == 0) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 0] == player && position['board'][square * 3 + 1][square * 3 + 0] == 0 && position['board'][square * 3 + 2][square * 3 + 0] == player) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 0] == 0 && position['board'][square * 3 + 1][square * 3 + 0] == player && position['board'][square * 3 + 2][square * 3 + 0] == player) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 1] == player && position['board'][square * 3 + 1][square * 3 + 1] == player && position['board'][square * 3 + 2][square * 3 + 1] == 0) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 1] == player && position['board'][square * 3 + 1][square * 3 + 1] == 0 && position['board'][square * 3 + 2][square * 3 + 1] == player) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 1] == 0 && position['board'][square * 3 + 1][square * 3 + 1] == player && position['board'][square * 3 + 2][square * 3 + 1] == player) {
-count++;
-}
-ifposition['board'][square * 3 + 0][square * 3 + 2] == player && position['board'][square * 3 + 1][square * 3 + 2] == player && position['board'][square * 3 + 2][square * 3 + 2] == 0) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 2] == player && position['board'][square * 3 + 1][square * 3 + 2] == 0 && position['board'][square * 3 + 2][square * 3 + 2] == player) {
-count++;
-}
-if (position['board'][square * 3 + 0][square * 3 + 2] == 0 && position['board'][square * 3 + 1][square * 3 + 2] == player && position['board'][square * 3 + 2][square * 3 + 2] == player) {
-count++;
-}
-return count;
-}
-
-int evaluatePos(Map<String, dynamic> position, int square) {
-int oppSquare = (square + 4) % 9;
-int score = 0;
-score += realEvaluateSquare(position, square, 1); //we are 1
-score -= realEvaluateSquare(position, oppSquare, 1); //opp is -1
-score += realEvaluateSquare(position, square, -1);
-score -= realEvaluateSquare(position, oppSquare, -1);
-return score;
-}
-
-Map<String, dynamic> miniMax(Map<String, dynamic> position, int boardToPlayOn, int depth, int alpha, int beta, bool maximizingPlayer) {
-int currentPlayer = maximizingPlayer ? 1 : -1;
-int bestMove = -1;
-int value;
-
-if (depth == 0 || checkWinCondition(position['map']) != null || checkWinCondition(position['board'][boardToPlayOn]) != null) {
-return {'move': bestMove, 'score': realEvaluate(position, boardToPlayOn)};
-}
-
-List<int> availableMoves = [];
-for (int i = 0; i < 81; i++) {
-if (position['board'][boardToPlayOn][i ~/ 9][i % 9 % 9] == 0 && position['map'][i ~/ 27][i % 9 ~/ 3] == boardToPlayOn) {
-availableMoves.add(i);
-}
-}
-
-if (maximizingPlayer) {
-value = -999999;
-for (int i = 0; i < availableMoves.length; i++) {
-int move = availableMoves[i];
-int newBoardToPlayOn = move % 9;
-Map<String, dynamic> newPosition = makeMove(position, move ~/ 9, move % 9 % 9, currentPlayer);  Map<String, dynamic> mmResult = miniMax(newPosition, newBoardToPlayOn, depth - 1, alpha, beta, false);
-  if (mmResult['score'] > value) {
-    value = mmResult['score'];
-    bestMove = move;
-  }
-  alpha = alpha > value ? alpha : value;
-  if (beta <= alpha) {
-    break;
-  }
-}
-} else {
-value = 999999;
-for (int i = 0; i < availableMoves.length; i++) {
-int move = availableMoves[i];
-int newBoardToPlayOn = move % 9; Map<String, dynamic> newPosition = makeMove(position, move ~/ 9, move % 9 % 9, currentPlayer);
-  Map<String, dynamic> mmResult = miniMax(newPosition, newBoardToPlayOn, depth - 1, alpha, beta, true);
-  if (mmResult['score'] < value) {
-    value = mmResult['score'];
-    bestMove = move;
-  }
-  beta = beta < value ? beta : value;
-  if (beta <= alpha) {
-    break;
-  }
-}}
-
-return {'move': bestMove, 'score': value};
-}
-
-int evaluateGame(Map<String, dynamic> position, int currentBoard) {
-int score = 0;
-for (int i = 0; i < 9; i++) {
-if (i == currentBoard) {
-score += evaluatePos(position, i) * 2;
-} else {
-score += evaluatePos(position, i);
-}
-}
-return score;
-}
-
-String checkWinCondition(List<List<int>> map) {
-String winner = null;
-for (int i = 0; i < 3; i++) {
-if (map[i][0] == map[i][1] && map[i][1] == map[i][2] && map[i][0] != -1) {
-if (winner != null && winner != map[i][0].toString()) {
-return null;
-}
-winner = map[i][0].toString();
-}
-if (map[0][i] == map[1][i] && map[1][i] == map[2][i] && map[0][i] != -1) {
-if (winner != null && winner != map[0][i].toString()) {
-return null;
-}
-winner = map[0][i].toString();
-}
-}
-if (map[0][0] == map[1][1] && map[1][1] == map[2][2] && map[0][0] != -1) {
-if (winner != null && winner != map[0][0].toString()) {
-return null;
-}
-winner = map[0][0].toString();
-}
-if (map[0][2] == map[1][1] && map[1][1] == map[2][0] && map[0][2] != -1) {
-if (winner != null && winner != map[0][2].toString()) {
-return null;
-}
-winner = map[0][2].toString();
-}
-return winner;
-}void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Ultimate Tic Tac Toe',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: MyHomePage(title: 'Ultimate Tic Tac Toe AI'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _currentBoard = -1;
-  List<List<List<int>>> _board = List.generate(9, (_) => List.generate(9, (_) => List.filled(3, -1)));
-  bool _gameOver = false;
-  int _winner = -1;
-  int _currentPlayer = 1;
-  bool _aiTurn = false;
-  bool _aiPlaying = false;
-  int _difficulty = 3;
-
-  void _resetGame() {
-    setState(() {
-      _currentBoard = -1;
-      _board = List.generate(9, (_) => List.generate(9, (_) => List.filled(3, -1)));
-      _gameOver = false;
-      _winner = -1;
-      _currentPlayer = 1;
-      _aiTurn = false;
-    });
-  }
-
-  void _makeMove(int board, int position) {
-    setState(() {
-      _board[board][position ~/ 3][position % 3] = _currentPlayer;
-      String win = checkWinCondition(_board[board]);
-      if (win != null) {
-        _board[board] = List.generate(3, (_) => List.filled(3, _winner));
-      }
-      String gameWin = checkWinCondition(_board);
-      if (gameWin != null) {
-        _gameOver = true;
-        _winner = int.parse(gameWin);
-      }
-      if (_board[position % 9][0][0] != -1 && !(_board[position % 9][0][0] is bool)) {
-        _currentBoard = -1;
-      } else {
-        _currentBoard = position % 9;
-      }
-      _currentPlayer = _currentPlayer == 1 ? 2 : 1;
-      _aiTurn = _aiPlaying && _currentPlayer == -1;
-      if (_aiTurn) {
-        int bestMove = miniMax({'board': _board, 'player': _currentPlayer}, _currentBoard, _difficulty, double.negativeInfinity, double.infinity, true)['move'];
-        _makeMove(bestMove ~/ 9, bestMove % 9 % 9);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: 3,
-              children: List.generate(9, (index) {
-                return Center(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black),
-                      color: _currentBoard == index ? Colors.grey : Colors.white,
-                    ),
-                    child: GridView.count(
-                      crossAxisCount: 3,
-                      shrinkWrap: true,
-                      children: List.generate(9, (position) {
-                        return GestureDetector(
-                          onTap: () {
-                            if (!_gameOver && (_currentBoard == -1 || _currentBoard == position % 9) && _board[position ~/3][position % 3] == -1 && !_aiTurn) {
-_makeMove(position % 9, position);
-}
-},
-child: Container(
-decoration: BoxDecoration(
-border: Border.all(color: Colors.black),
-color: _board[position % 9][position ~/ 3][position % 3] == -1 ? Colors.white : _board[position % 9][position ~/ 3][position % 3] == 1 ? Colors.redAccent : Colors.blueAccent,
-),
-child: Center(
-child: Text(
-_board[position % 9][position ~/ 3][position % 3] == -1 ? '' : _board[position % 9][position ~/ 3][position % 3] == 1 ? 'X' : 'O',
-style: TextStyle(
-color: Colors.white,
-fontSize: 40.0,
-fontWeight: FontWeight.bold,
-),
-),
-),
-),
-);
-}),
-),
-),
-);
-}),
-),
-),
-Container(
-child: Row(
-mainAxisAlignment: MainAxisAlignment.center,
-children: <Widget>[
-Padding(
-padding: const EdgeInsets.all(8.0),
-child: RaisedButton(
-child: Text('Reset'),
-onPressed: () {
-_resetGame();
-},
-),
-),
-Padding(
-padding: const EdgeInsets.all(8.0),
-child: RaisedButton(
-child: Text(_aiPlaying ? 'Stop AI' : 'Start AI'),
-onPressed: () {
-setState(() {
-_aiPlaying = !_aiPlaying;
-if (_aiPlaying && _currentPlayer == -1) {
-int bestMove = miniMax({'board': _board, 'player': _currentPlayer}, _currentBoard, _difficulty, double.negativeInfinity, double.infinity, true)['move'];
-_makeMove(bestMove ~/ 9, bestMove % 9 % 9);
-}
-});
-},
-),
-),
-Padding(
-padding: const EdgeInsets.all(8.0),
-child: DropdownButton(
-value: _difficulty,
-items: [
-DropdownMenuItem(
-child: Text('Easy'),
-value: 1,
-),
-DropdownMenuItem(
-child: Text('Medium'),
-value: 3,
-),
-DropdownMenuItem(
-child: Text('Hard'),
-value: 5,
-),
-DropdownMenuItem(
-child: Text('Impossible'),
-value: 9,
-),
-],
-onChanged: (value) {
-setState(() {
-_difficulty = value;
-});
-},
-),
-),
-],
-),
-),
-_gameOver
-? Padding(
-padding: const EdgeInsets.all(8.0),
-child: Text(
-_winner == 1 ? 'Player 1 wins!' : _winner == 2 ? 'Player 2 wins!' : 'It's a tie!',
-style: TextStyle(
-fontSize: 30.0,
-fontWeight: FontWeight.bold,
-),
-),
-)
-: SizedBox.shrink(),
-],
-),
-);
-}
-}
-
-String checkWinCondition(List<List<int>> map) {
-for (int i = 0; i < 3; i++) {
-if (map[i][0] != -1 && map[i][0] == map[i][1] && map[i][0] == map[i][2]) {
-return map[i][0].toString();
-}
-if (map[0][i] != -1 && map[0][i] == map[1][i] && map[0][i] == map[2][i]) {
-      return map[0][i].toString();
-    }
-  }
-  if (map[0][0] != -1 && map[0][0] == map[1][1] && map[0][0] == map[2][2]) {
-    return map[0][0].toString();
-  }
-  if (map[2][0] != -1 && map[2][0] == map[1][1] && map[2][0] == map[0][2]) {
-    return map[2][0].toString();
-  }
-  if (map.expand((element) => element).contains(-1)) {
-    return '';
-  } else {
-    return 'T';
-  }
-}
-
-dynamic evaluateGame(Map position, List<List<int>> currentBoard) {
-  String winner = checkWinCondition(position['board'][position['player']]);
-  if (winner == '1') {
-    return {'score': 10};
-  } else if (winner == '2') {
-    return {'score': -10};
-  } else if (winner == 'T') {
-    return {'score': 0};
-  } else {
-    int score = 0;
-    for (int i = 0; i < 9; i++) {
-      String squareWinner = checkWinCondition(currentBoard[i]);
-      if (squareWinner == '1') {
-        score += 3;
-      } else if (squareWinner == '2') {
-        score -= 3;
-      }
-      score += evaluatePos(i, currentBoard[i])['score'];
-    }
-    return {'score': score};
-  }
-}
-
-dynamic miniMax(Map position, int boardToPlayOn, int depth, double alpha, double beta, bool maximizingPlayer) {
-  if (depth == 0) {
-    return {'score': realEvaluateSquare(position['player'], boardToPlayOn), 'move': -1};
-  }
-  String winner = checkWinCondition(position['board'][position['player']]);
-  if (winner == '1') {
-    return {'score': 10, 'move': -1};
-  } else if (winner == '2') {
-    return {'score': -10, 'move': -1};
-  } else if (winner == 'T') {
-    return {'score': 0, 'move': -1};
-  }
-  List<Map> moves = [];
-  for (int i = 0; i < 81; i++) {
-    if (position['board'][i ~/ 9][i % 9 ~/ 3][i % 9 % 3] == -1) {
-      Map move = {'board': List.generate(3, (_) => List.generate(3, (_) => List.filled(3, -1, growable: false), growable: false), growable: false), 'player': position['player'] == 1 ? 2 : 1};
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-          for (int l = 0; l < 3; l++) {
-            move['board'][j][k][l] = position['board'][j][k][l];
-          }
+        //Calculates the remaining amount of empty squares
+        var count = 0;
+        for(var bt = 0; bt < boards.length; bt++){
+            if(checkWinCondition(boards[bt]) === 0){
+                boards[bt].forEach((v) => (v === 0 && count++));
+            }
         }
-      }
-      move['board'][i ~/ 27 * 3 + i % 9 ~/ 3][i % 3][i % 9 % 3] = maximizingPlayer ? 1 : 2;
-      moves.add(move);
+
+
+        if(currentBoard === -1 || checkWinCondition(boards[currentBoard]) !== 0){
+            var savedMm;
+
+            console.log("Remaining: " + count);
+
+            //This minimax doesn't actually play a move, it simply figures out which board you should play on
+            if(MOVES < 10) {
+                savedMm = miniMax(boards, -1, Math.min(4, count), -Infinity, Infinity, true); //Putting math.min makes sure that minimax doesn't run when the board is full
+            }else if(MOVES < 18){
+                savedMm = miniMax(boards, -1, Math.min(5, count), -Infinity, Infinity, true);
+            }else{
+                savedMm = miniMax(boards, -1, Math.min(6, count), -Infinity, Infinity, true);
+            }
+            console.log(savedMm.tP);
+            currentBoard = savedMm.tP;
+        }
+
+        //Just makes a quick default move for if all else fails
+        for (var i = 0; i < 9; i++) {
+            if (boards[currentBoard][i] === 0) {
+                bestMove = i;
+                break;
+            }
+        }
+
+
+        if(bestMove !== -1) { //This condition should only be false if the board is full, but it's here in case
+
+            //Best score is an array which contains individual scores for each square, here we're just changing them based on how good the move is on that one local board
+            for (var a = 0; a < 9; a++) {
+                if (boards[currentBoard][a] === 0) {
+                    var score = evaluatePos(boards[currentBoard], a, currentTurn)*45;
+                    bestScore[a] = score;
+                }
+            }
+
+            //And here we actually run minimax and add those values to the array
+            for(var b = 0; b < 9; b++){
+                if(checkWinCondition(boards[currentBoard]) === 0){
+                    if (boards[currentBoard][b] === 0) {
+                        boards[currentBoard][b] = ai;
+                        var savedMm;
+                        //Notice the stacking, at the beginning of the game, the depth is much lower than at the end
+                        if(MOVES < 20){
+                            savedMm = miniMax(boards, b, Math.min(5, count), -Infinity, Infinity, false);
+                        }else if(MOVES < 32){
+                            console.log("DEEP SEARCH");
+                            savedMm = miniMax(boards, b, Math.min(6, count), -Infinity, Infinity, false);
+                        }else{
+                            console.log("ULTRA DEEP SEARCH");
+                            savedMm = miniMax(boards, b, Math.min(7, count), -Infinity, Infinity, false);
+                        }
+                        console.log(savedMm);
+                        var score2 = savedMm.mE;
+                        boards[currentBoard][b] = 0;
+                        bestScore[b] += score2;
+                        //boardSel[b] = savedMm.tP;
+                        //console.log(score2);
+                    }
+                }
+            }
+
+            console.log(bestScore);
+
+            //Choses to play on the square with the highest evaluation in the bestScore array
+            for(var i in bestScore){
+                if(bestScore[i] > bestScore[bestMove]){
+                    bestMove = i;
+                }
+            }
+
+            //Actually places the cross/nought
+            if(boards[currentBoard][bestMove] === 0){
+                boards[currentBoard][bestMove] = ai;
+                currentBoard = bestMove;
+            }
+
+            console.log(evaluateGame(boards, currentBoard));
+        }
+
+        //document.getElementById("loader").setAttribute('hidden', 'hidden');
+
+        currentTurn = -currentTurn;
+
     }
-  }
-  if (maximizingPlayer) {
-    double bestScore = double.negativeInfinity;
-    int bestMove =-1;
-    for (int i = 0; i < moves.length; i++) {
-      dynamic score = miniMax(moves[i], (moves[i]['board'][i ~/ 27 * 3 + i % 9 ~/ 3][i % 3][i % 9 % 3] - 1) * 9 + i % 9 % 3, depth - 1, alpha, beta, false);
-      if (score['score'] > bestScore) {
-        bestScore = score['score'];
-        bestMove = (moves[i]['board'][i ~/ 27 * 3 + i % 9 ~/ 3][i % 3][i % 9 % 3] - 1) * 9 + i % 9 % 3;
-      }
-      alpha = max(alpha, bestScore);
-      if (beta <= alpha) {
-        break;
-      }
+
+    shapeSize = squareSize/6;
+
+    //mouseClickHandler
+    if(clicked === true && gameRunning) {
+        for (var i in boards) {
+            if(currentBoard !== -1){i = currentBoard;if(mainBoard[currentBoard] !== 0){continue;}}
+            for (var j in boards[i]) {
+                if(boards[i][j] === 0) {
+                    if (mousePosX > (WIDTH / 3 - squareSize) / 2 + squareSize / 6 - shapeSize + (j % 3) * squareSize / 3 + (i % 3) * WIDTH / 3 && mousePosX < (WIDTH / 3 - squareSize) / 2 + squareSize / 6 + shapeSize + (j % 3) * squareSize / 3 + (i % 3) * WIDTH / 3) {
+                        if (mousePosY > (WIDTH / 3 - squareSize) / 2 + squareSize / 6 - shapeSize + Math.floor(j / 3) * squareSize / 3 + Math.floor(i / 3) * WIDTH / 3 && mousePosY < (WIDTH / 3 - squareSize) / 2 + squareSize / 6 + shapeSize + Math.floor(j / 3) * squareSize / 3 + Math.floor(i / 3) * WIDTH / 3) {
+                            boards[i][j] = currentTurn;
+                            currentBoard = j;
+                            currentTurn = -currentTurn;
+                            MOVES++;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
-    return {'score': bestScore, 'move': bestMove};
-  } else {
-    double bestScore = double.infinity;
-    int bestMove = -1;
-    for (int i = 0; i < moves.length; i++) {
-      dynamic score = miniMax(moves[i], (moves[i]['board'][i ~/ 27 * 3 + i % 9 ~/ 3][i % 3][i % 9 % 3] - 1) * 9 + i % 9 % 3, depth - 1, alpha, beta, true);
-      if (score['score'] < bestScore) {
-        bestScore = score['score'];
-        bestMove = (moves[i]['board'][i ~/ 27 * 3 + i % 9 ~/ 3][i % 3][i % 9 % 3] - 1) * 9 + i % 9 % 3;
-      }
-      beta = min(beta, bestScore);
-      if (beta <= alpha) {
-        break;
-      }
+
+    //DRAW BOARDS
+
+    squareSize = WIDTH/4;
+    var shapeSize = WIDTH/36;
+
+    ctx.strokeStyle = COLORS.black;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(WIDTH/3, 0);
+    ctx.lineTo(WIDTH/3, WIDTH);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(WIDTH/3*2, 0);
+    ctx.lineTo(WIDTH/3*2, WIDTH);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, WIDTH/3);
+    ctx.lineTo(WIDTH, WIDTH/3);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, WIDTH/3*2);
+    ctx.lineTo(WIDTH, WIDTH/3*2);
+    ctx.stroke();
+
+    ctx.lineWidth = 3;
+    for(var i = 0; i < 3; i++){
+        for(var j = 0; j < 3; j++){
+            ctx.beginPath();
+            ctx.moveTo(i*WIDTH/3 + (WIDTH/3-squareSize)/2 + squareSize/3, j*WIDTH/3 + (WIDTH/3 - squareSize)/2);
+            ctx.lineTo(i*WIDTH/3 + (WIDTH/3-squareSize)/2 + squareSize/3, j*WIDTH/3 + (WIDTH/3 - squareSize)/2 + squareSize);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(i*WIDTH/3 + (WIDTH/3-squareSize)/2 + squareSize*2/3, j*WIDTH/3 + (WIDTH/3 - squareSize)/2);
+            ctx.lineTo(i*WIDTH/3 + (WIDTH/3-squareSize)/2 + squareSize*2/3, j*WIDTH/3 + (WIDTH/3 - squareSize)/2 + squareSize);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(i*WIDTH/3 + (WIDTH/3 - squareSize)/2, j*WIDTH/3 + (WIDTH/3-squareSize)/2 + squareSize/3);
+            ctx.lineTo(i*WIDTH/3 + (WIDTH/3 - squareSize)/2 + squareSize, j*WIDTH/3 + (WIDTH/3-squareSize)/2 + squareSize/3);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(i*WIDTH/3 + (WIDTH/3 - squareSize)/2, j*WIDTH/3 + (WIDTH/3-squareSize)/2 + squareSize*2/3);
+            ctx.lineTo(i*WIDTH/3 + (WIDTH/3 - squareSize)/2 + squareSize, j*WIDTH/3 + (WIDTH/3-squareSize)/2 + squareSize*2/3);
+            ctx.stroke();
+        }
     }
-    return {'score': bestScore, 'move': bestMove};
-  }
-} 
+
+    //Draws the SMALL noughts and crosses
+    ctx.lineWidth = 5;
+
+    for(var i in boards){
+        if(mainBoard[i] === 0) {
+            if (checkWinCondition(boards[i]) !== 0) {
+                mainBoard[i] = checkWinCondition(boards[i]);
+            }
+        }
+        for(var j in boards[i]){
+            if(boards[i][j] === 1*switchAroo){
+                ctx.strokeStyle = COLORS.red;
+                ctx.beginPath();
+                ctx.moveTo((WIDTH/3-squareSize)/2 + squareSize/6 - shapeSize + (j%3)*squareSize/3 + (i%3)*WIDTH/3, (WIDTH/3 - squareSize)/2 + squareSize/6 - shapeSize + Math.floor(j/3)*squareSize/3 + Math.floor(i/3)*WIDTH/3);
+                ctx.lineTo((WIDTH/3-squareSize)/2 + squareSize/6 + shapeSize + (j%3)*squareSize/3 + (i%3)*WIDTH/3, (WIDTH/3 - squareSize)/2 + squareSize/6 + shapeSize + Math.floor(j/3)*squareSize/3 + Math.floor(i/3)*WIDTH/3);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo((WIDTH/3-squareSize)/2 + squareSize/6 - shapeSize + (j%3)*squareSize/3 + (i%3)*WIDTH/3, (WIDTH/3 - squareSize)/2 + squareSize/6 + shapeSize + Math.floor(j/3)*squareSize/3 + Math.floor(i/3)*WIDTH/3);
+                ctx.lineTo((WIDTH/3-squareSize)/2 + squareSize/6 + shapeSize + (j%3)*squareSize/3 + (i%3)*WIDTH/3, (WIDTH/3 - squareSize)/2 + squareSize/6 - shapeSize + Math.floor(j/3)*squareSize/3 + Math.floor(i/3)*WIDTH/3);
+                ctx.stroke();
+            }else if(boards[i][j] === -1*switchAroo){
+                ctx.strokeStyle = COLORS.blue;
+                ctx.beginPath();
+                ctx.ellipse((WIDTH/3-squareSize)/2 + squareSize/6 + (j%3)*squareSize/3 + (i%3)*WIDTH/3, (WIDTH/3 - squareSize)/2 + squareSize/6 + Math.floor(j/3)*squareSize/3 + Math.floor(i/3)*WIDTH/3, shapeSize*1.1, shapeSize*1.1, 0, 0, Math.PI*2);
+                ctx.stroke();
+            }
+        }
+    }
+
+    //Checks the win conditions
+    if(gameRunning){
+        if (checkWinCondition(mainBoard) !== 0) {
+            gameRunning = false;
+            document.getElementById("winMenu").removeAttribute("hidden");
+            if(checkWinCondition(mainBoard) === 1){
+                document.getElementById("result").innerHTML = playerNames[0] + " WINS!";
+            }else{
+                document.getElementById("result").innerHTML = playerNames[1] + " WINS!";
+            }
+        }
+
+        //Once again, count the amount of playable squares, if it's 0, game is a tie
+        var countw = 0;
+        for(var bt = 0; bt < boards.length; bt++){
+            if(checkWinCondition(boards[bt]) === 0){
+                boards[bt].forEach((v) => (v === 0 && countw++));
+            }
+        }
+
+        if(countw === 0){
+            gameRunning = false;
+            document.getElementById("winMenu").removeAttribute("hidden");
+            document.getElementById("result").innerHTML = "IT'S A TIE!";
+        }
+    }
+
+    shapeSize = squareSize/3;
+    ctx.lineWidth = 20;
+
+    //Draws the BIG noughts and crosses
+    for(var j in mainBoard){
+        if(mainBoard[j] === 1*switchAroo){
+            ctx.strokeStyle = COLORS.red;
+            ctx.beginPath();
+            ctx.moveTo(WIDTH/6 - shapeSize + (j%3)*WIDTH/3, WIDTH/6 - shapeSize + Math.floor(j/3)*WIDTH/3);
+            ctx.lineTo(WIDTH/6 + shapeSize + (j%3)*WIDTH/3, WIDTH/6 + shapeSize + Math.floor(j/3)*WIDTH/3);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(WIDTH/6 - shapeSize + (j%3)*WIDTH/3, WIDTH/6 + shapeSize + Math.floor(j/3)*WIDTH/3);
+            ctx.lineTo(WIDTH/6 + shapeSize + (j%3)*WIDTH/3, WIDTH/6 - shapeSize + Math.floor(j/3)*WIDTH/3);
+            ctx.stroke();
+        }else if(mainBoard[j] === -1*switchAroo){
+            ctx.strokeStyle = COLORS.blue;
+            ctx.beginPath();
+            ctx.ellipse(WIDTH/6 + (j%3)*WIDTH/3, WIDTH/6 + Math.floor(j/3)*WIDTH/3, shapeSize*1.1, shapeSize*1.1, 0, 0, Math.PI*2);
+            ctx.stroke();
+        }
+    }
+
+    if(mainBoard[currentBoard] !== 0 || !boards[currentBoard].includes(0)){currentBoard = -1;}
+
+    //HIGHLIGHT BOARD TO PLAY ON
+
+    ctx.fillStyle = COLORS.red;
+    ctx.globalAlpha = 0.1;
+    ctx.fillRect(WIDTH/3*(currentBoard%3), WIDTH/3*Math.floor(currentBoard/3), WIDTH/3, WIDTH/3);
+    ctx.globalAlpha = 1;
+
+    //Draw EVAL BAR
+
+    ctx.globalAlpha = 0.9;
+    if(evaluateGame(boards, currentBoard)*switchAroo > 0){
+        ctx.fillStyle = COLORS.blue;
+    }else{
+        ctx.fillStyle = COLORS.red;
+    }
+    ctx.fillRect(WIDTH/2, WIDTH, evaluateGame(boards, currentBoard)*2*switchAroo, HEIGHT/16);
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 4;
+
+    ctx.beginPath();
+    ctx.moveTo(WIDTH/2, WIDTH);
+    ctx.lineTo(WIDTH/2, WIDTH+HEIGHT);
+    ctx.stroke();
+
+    //console.log(RUNS);
+
+    if(AIACTIVE){
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = COLORS.black;
+        ctx.fillRect(WIDTH/2, WIDTH, bestScore[bestMove]*2*switchAroo, HEIGHT/16);
+        ctx.globalAlpha = 1;
+    }
+
+    clicked = false;
+
+}
