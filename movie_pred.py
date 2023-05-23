@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlparse
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -8,22 +9,24 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 import pickle
+from sklearn.model_selection import GridSearchCV
+
 from sklearn.calibration import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
 import string
 import matplotlib
-import nltk
-from nltk.corpus import stopwords
-# import category_encoders as ce
+from nltk.stem import WordNetLemmatizer
+
+
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 def main():
     # Read the movies from the CSV file
     movies = pd.read_csv('movies-classification-dataset.csv' , parse_dates=['release_date'])
     # iterating the columns
-    for col in movies.columns:
-        print(col)
+    # for col in movies.columns:
+    #     print(col)
     # print(movies['keywords'].head(5))
     preprocess_titles(movies, 'original_title')
     preprocess_titles(movies, 'title')
@@ -38,9 +41,12 @@ def main():
 
     }
     movies['Rate']=movies['Rate'].map(ratemappins)
-    movies = clean_and_tokenize_tagline(movies,"tagline")
+    # movies = clean_and_tokenize_tagline(movies,"tagline")
     movies = clean_and_encode_homepage(movies,'homepage')
+    movies = CatEncoding(movies,'genres')
+    movies = CatEncoding(movies,'keywords')
 
+    movies =LabelEncoding(movies)
     movies['homepage_freq_enc'].fillna(0, inplace=True)
     # movies = Keyencoding(movies)
     movies['overview'].fillna('', inplace=True)
@@ -56,8 +62,7 @@ def main():
     # movies['release_date'] = movies['release_date'].to_timestamp()
 
     # Cast the Unix timestamp to a float
-    movies['release_date'] = movies['release_date'].astype('int64').astype('int32')
-
+    movies['release_date'] = movies['release_date'].astype('int')
 
     movies = handleMissingNumValues(movies, 'budget')
     movies = handleMissingNumValues(movies, 'viewercount')
@@ -66,17 +71,17 @@ def main():
     movies = handleMissingNumValues(movies, 'vote_count')
 
     # drop dupes
-    movies.drop(['id', 'original_title', 'title' , 'keywords'], axis=1, inplace=True)
+    movies.drop(['id', 'original_title', 'title' ,'tagline', "overview"], axis=1, inplace=True)
+     
 
     movies = movies.drop_duplicates()
-    movies = preOverview(movies)
 
-    total = movies.shape[0]
-    threshold = total * .0005
-    cols = ['overview','tagline'] 
-    movies = movies.apply(lambda x:x.mask(x.map(x.value_counts()) < threshold, 'RARE') if x.name in cols else x)
-    movies = pd.get_dummies(data = movies , columns = cols)
-    movies.drop(['overview_RARE','tagline_RARE'  ], axis=1, inplace=True)
+    # total = movies.shape[0]
+    # threshold = total * .0005
+    # cols = ['overview'] 
+    # movies = movies.apply(lambda x:x.mask(x.map(x.value_counts()) < threshold, 'RARE') if x.name in cols else x)
+    # movies = pd.get_dummies(data = movies , columns = cols)
+    # movies.drop(['overview_RARE'  ], axis=1, inplace=True)
 
 
     # Extract the columns that need to be scaled
@@ -89,7 +94,6 @@ def main():
     # Apply the scaler to the selected columns
     movies[cols_to_scale] = scaler.fit_transform(movies[cols_to_scale])
 
-    movies = CatEncoding(movies)
 
     movies = cleanOutliers(movies)
 
@@ -130,51 +134,36 @@ def main():
     print('Decision tree accuracy:', decision_tree_accuracy)
     print('Random forest accuracy:', random_forest_accuracy)
 
+    max_features_range = np.arange(1,6,1)
+    n_estimators_range = np.arange(10,11,10)
+    rf_param_grid = dict(max_features=max_features_range, n_estimators=n_estimators_range)
+    svm_param_grid = {'kernel': ['linear', 'poly', 'rbf'], 'C': [1, 10, 100]}
+    decTree_param_grid = {'criterion': ['gini', 'entropy'], 'max_depth': [3, 5, 7]}
+
+    # hyperparameter tunningfor random forest 
+    grid = GridSearchCV(estimator=random_forest_model, param_grid=rf_param_grid, cv=5)
+    grid.fit(X_train, y_train)
+    print("The best random forest parameters are %s with a score of %0.2f"
+      % (grid.best_params_, grid.best_score_))
+    
+    # hyperparameter tunningfor svm
+    grid = GridSearchCV(svm_model, param_grid=svm_param_grid, cv=5)
+    grid.fit(X_train, y_train)
+    print("The best svm parameters are %s with a score of %0.2f"
+      % (grid.best_params_, grid.best_score_))
+    
+    # hyperparameter tunningfor random forest 
+    grid = GridSearchCV(estimator=decision_tree_model, param_grid=decTree_param_grid, cv=5)
+    grid.fit(X_train, y_train)
+    print("The best decision tree forest parameters are %s with a score of %0.2f"
+      % (grid.best_params_, grid.best_score_))
+    
+
     # Select the best model
     best_model = max(svm_model, decision_tree_model, random_forest_model, key=lambda model: model.score(X_test, y_test))
 
-  
 
-
-
-def preOverview(movies):
-    # Load the stop words
-    stop_words = nltk.corpus.stopwords.words('english')
-
-    # Stem the words
-    stemmer = nltk.stem.PorterStemmer()
-
-    # Remove punctuation
-    punctuation = set([',', '.', '!', '?', ';', ':', '(', ')', '{', '}'])
-
-    # Normalize the text
-    def normalize(text):
-        text = text.lower()
-        text = text.replace(',', ' ')
-        text = text.replace('.', ' ')
-        text = text.replace('!', ' ')
-        text = text.replace('?', ' ')
-        text = text.replace(';', ' ')
-        text = text.replace(':', ' ')
-        text = text.replace('(', ' ')
-        text = text.replace(')', ' ')
-        text = text.replace('{', ' ')
-        text = text.replace('}', ' ')
-        return text
-
-
-    # Preprocess the overview column
-    overviews = [normalize(overview) for overview in movies['overview']]
-
-    # Stem the words in the overview column
-    
-    overviews = [''.join([stemmer.stem(word) for word in overview if word not in stop_words]) for overview in overviews]
-    # One-hot encode the overview column
-    movies['overview'] = overviews
-
-    return movies
-
-
+   
 
 def preprocess_titles(df, column_name):
     # remove leading and trailing whitespaces
@@ -189,7 +178,11 @@ def preprocess_titles(df, column_name):
     # tokenize the titles
     df[column_name] = df[column_name].str.split()
 
-   
+    # # print the preprocessed movies
+    # fc = df[column_name].tolist()
+    # print(f'{column_name}:', fc)
+    # print("////////////////////////////////////////////////////")
+
 
 
 def handleMissingNumValues(movies, col):
@@ -248,55 +241,48 @@ def cleanOutliers(movies):
         movies = movies.drop(outliers)
     return movies
 
-
-def CatEncoding(df):
-    def update_genres(x):
-
+def CatEncoding(dataSet, column_name):
+    def update_column(x):
         import json
-
         json_string = x
-
-        # parse the JSON string into a Python object
-        movies = json.loads(json_string)
-
-        # iterate through the list of dictionaries and extract the values of the "name" key
-        names = [d["name"] for d in movies]
+        data = json.loads(json_string)
+        names = [d["name"] for d in data]
         return names
-        # apply function to genres column
 
-    df['genres'] = df['genres'].apply(lambda x: update_genres(x))
-    unique_genres = set(genre for movie_genres in df['genres'] for genre in movie_genres)
-    # print(unique_genres)
-    # Output: {'Drama', 'War', 'Action', 'Documentary', 'Comedy', 'Horror', 'Music', 'Crime', 'Thriller', 'Romance'}
-    # Create a new moviesframe with one column for each unique genre
-    for genre in unique_genres:
-        df[genre] = df['genres'].apply(lambda x: 1 if genre in x else 0)
+    dataSet[column_name] = dataSet[column_name].apply(lambda x: update_column(x))
 
-    # Drop the original 'genres' column
-    df.drop('genres', axis=1, inplace=True)
+    column_counts = dataSet[column_name].explode().value_counts()
+    threshold = int(5/ 100 * len(dataSet))  # Calculate the threshold based on the dataset size
+    popular_columns = column_counts[column_counts > threshold].index.tolist()
 
+    for column in popular_columns:
+        dataSet[column] = dataSet[column_name].apply(lambda x: 1 if column in x else 0)
+
+    dataSet.drop(column_name, axis=1, inplace=True)
+
+
+
+    return dataSet
+
+
+from sklearn.preprocessing import LabelEncoder
+
+
+def LabelEncoding(df):
     features = ['original_language', 'production_countries', 'spoken_languages', 'production_companies']
-
-    # Loop over each feature and label encode it
     for feature in features:
         le = LabelEncoder()
         df[feature] = le.fit_transform(df[feature].astype(str))
-    # Define the two possible values of the 'status' column
-    status_values = ['Released', 'Post Production', 'Unknown']
 
-    # Fit the encoder to the status values
+    status_values = ['Released', 'Post Production', 'Unknown']
     le.fit(status_values)
     df['status'] = df['status'].apply(lambda x: 'Unknown' if x not in le.classes_ else x)
-
-    # Apply label encoding to the 'status' column
     df['status'] = le.transform(df['status'])
 
     return df
 
-  
 
 
-# import category_encoders as ce
 
 def clean_and_encode_homepage(df, column_name):
     # Extract domain name from URL
